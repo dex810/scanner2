@@ -2,7 +2,7 @@
 <html>
 <head>
     <title>QR Code Scanner with Live Feed</title>
-    <script src="instascan.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/instascan@2.0.0/dist/instascan.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -78,8 +78,23 @@
                     // Use the first camera by default
                     const selectedCamera = cameras[0];
                     console.log('Starting camera:', selectedCamera.id);
-                    scanner.start(selectedCamera);
-                    status.textContent = 'Scanning...';
+
+                    // Use modern API to assign the stream to the video element
+                    navigator.mediaDevices.getUserMedia({
+                        video: {
+                            deviceId: { exact: selectedCamera.id }
+                        }
+                    })
+                    .then(function(stream) {
+                        video.srcObject = stream;
+                        video.play();
+                        scanner.start(selectedCamera);
+                        status.textContent = 'Scanning...';
+                    })
+                    .catch(function(error) {
+                        status.textContent = 'Failed to start camera: ' + error.message;
+                        console.error('Camera stream error:', error);
+                    });
                 } else {
                     status.textContent = 'No cameras found';
                     console.error('No cameras detected.');
