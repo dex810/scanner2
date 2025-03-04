@@ -1,120 +1,53 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>QR Code Scanner with Live Feed</title>
+    <title>QR Code Scanner</title>
     <script src="instascan.min.js"></script>
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #f0f0f0;
-        }
-
-        #scanner-container {
-            position: relative;
-            width: 90%;
-            max-width: 600px;
-            margin: 20px;
-            border: 3px solid #333;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        #preview {
-            width: 100%;
-            height: auto;
-            background-color: black;
-        }
-
-        #status {
-            padding: 10px;
-            text-align: center;
-            font-family: Arial, sans-serif;
-            font-size: 18px;
-            color: #333;
-        }
+        /* Your existing CSS styles */
+        body { margin: 0; padding: 20px; }
+        #preview { width: 100%; height: auto; }
     </style>
 </head>
 <body>
     <h1>QR Code Scanner</h1>
-    <div id="scanner-container">
-        <video id="preview"></video>
-    </div>
-    <div id="status">Initializing camera...</div>
+    <video id="preview"></video>
+    <div id="status">Scanning...</div>
 
     <script>
-        const video = document.getElementById('preview');
-        const status = document.getElementById('status');
-
-        // Debugging: Log camera initialization
-        console.log('Initializing camera...');
-
-        // Initialize scanner
         const scanner = new Instascan.Scanner({
-            video: video,
-            mirror: false,
-            backgroundScan: false,
-            refractoryPeriod: 5000,
-            scanPeriod: 1
+            video: document.getElementById('preview'),
+            mirror: false
         });
 
-        // Handle successful scans
-        scanner.addListener('scan', function(content) {
-            status.innerHTML = `
-                <strong>Scanned:</strong> ${content}<br>
-                <small>${new Date().toLocaleString()}</small>
-            `;
-            console.log('Scanned:', content);
+        scanner.addListener('scan', async (content) => {
+            const status = document.getElementById('status');
+            status.textContent = `Scanned: ${content}`;
+            
+            try {
+                const response = await fetch('YOUR_GOOGLE_SCRIPT_URL', {
+                    method: 'POST',
+                    body: JSON.stringify({ qrContent: content }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (!response.ok) throw new Error('Failed to save');
+                status.textContent += ' - Saved to Sheet!';
+            } catch (error) {
+                console.error(error);
+                status.textContent = `Error: ${error.message}`;
+            }
         });
 
-        // Start camera
         Instascan.Camera.getCameras()
-            .then(function(cameras) {
-                console.log('Cameras found:', cameras);
+            .then(cameras => {
                 if (cameras.length > 0) {
-                    // Use the first camera by default
-                    const selectedCamera = cameras[0];
-                    console.log('Starting camera:', selectedCamera.id);
-
-                    // Use modern API to assign the stream to the video element
-                    navigator.mediaDevices.getUserMedia({
-                        video: {
-                            deviceId: { exact: selectedCamera.id }
-                        }
-                    })
-                    .then(function(stream) {
-                        video.srcObject = stream;
-                        video.play();
-                        scanner.start(selectedCamera);
-                        status.textContent = 'Scanning...';
-                    })
-                    .catch(function(error) {
-                        status.textContent = 'Failed to start camera: ' + error.message;
-                        console.error('Camera stream error:', error);
-                    });
+                    scanner.start(cameras[0]);
                 } else {
-                    status.textContent = 'No cameras found';
-                    console.error('No cameras detected.');
+                    document.getElementById('status').textContent = 'No cameras found';
                 }
             })
-            .catch(function(error) {
-                status.textContent = 'Camera error: ' + error.message;
-                console.error('Camera error:', error);
-            });
-
-        // Debugging: Check if the video element is receiving a stream
-        video.addEventListener('loadeddata', () => {
-            console.log('Video stream loaded');
-            status.textContent = 'Camera feed active';
-        });
-
-        video.addEventListener('error', (e) => {
-            console.error('Video error:', e);
-            status.textContent = 'Video feed error';
-        });
+            .catch(console.error);
     </script>
 </body>
 </html>
