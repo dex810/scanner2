@@ -4,7 +4,6 @@
     <title>QR Code Scanner with Live Feed</title>
     <script src="instascan.min.js"></script>
     <style>
-        /* Add styling for better visual presentation */
         body {
             margin: 0;
             padding: 20px;
@@ -37,38 +36,25 @@
             font-size: 18px;
             color: #333;
         }
-
-        /* Add scanning overlay effect */
-        .scan-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(0deg, rgba(255,255,255,0.1) 50%, 
-                       rgba(0,255,0,0.2) 50%);
-            background-size: 100% 4px;
-            animation: scan 2s infinite linear;
-        }
-
-        @keyframes scan {
-            0% { background-position: 0 100%; }
-            100% { background-position: 0 0; }
-        }
     </style>
 </head>
 <body>
     <h1>QR Code Scanner</h1>
     <div id="scanner-container">
         <video id="preview"></video>
-        <div class="scan-overlay"></div>
     </div>
     <div id="status">Initializing camera...</div>
 
     <script>
+        const video = document.getElementById('preview');
+        const status = document.getElementById('status');
+
+        // Debugging: Log camera initialization
+        console.log('Initializing camera...');
+
         // Initialize scanner
         const scanner = new Instascan.Scanner({
-            video: document.getElementById('preview'),
+            video: video,
             mirror: false,
             backgroundScan: false,
             refractoryPeriod: 5000,
@@ -77,39 +63,42 @@
 
         // Handle successful scans
         scanner.addListener('scan', function(content) {
-            document.getElementById('status').innerHTML = `
+            status.innerHTML = `
                 <strong>Scanned:</strong> ${content}<br>
                 <small>${new Date().toLocaleString()}</small>
             `;
-            
-            // Send to Google Sheets (use your existing code here)
-            fetch('YOUR_GOOGLE_SCRIPT_URL', {
-                method: 'POST',
-                body: JSON.stringify({ qrContent: content }),
-                headers: { 'Content-Type': 'application/json' }
-            });
+            console.log('Scanned:', content);
         });
 
         // Start camera
         Instascan.Camera.getCameras()
             .then(function(cameras) {
+                console.log('Cameras found:', cameras);
                 if (cameras.length > 0) {
-                    scanner.start(cameras[0]);
-                    document.getElementById('status').textContent = 'Scanning...';
+                    // Use the rear camera by default
+                    const selectedCamera = cameras.find(camera => camera.name.includes('back')) || cameras[0];
+                    console.log('Starting camera:', selectedCamera.name);
+                    scanner.start(selectedCamera);
+                    status.textContent = 'Scanning...';
                 } else {
-                    document.getElementById('status').textContent = 'No cameras found';
+                    status.textContent = 'No cameras found';
+                    console.error('No cameras detected.');
                 }
             })
             .catch(function(error) {
-                document.getElementById('status').textContent = 'Camera error: ' + error;
+                status.textContent = 'Camera error: ' + error.message;
                 console.error('Camera error:', error);
             });
 
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            const video = document.getElementById('preview');
-            video.style.width = '100%';
-            video.style.height = 'auto';
+        // Debugging: Check if the video element is receiving a stream
+        video.addEventListener('loadeddata', () => {
+            console.log('Video stream loaded');
+            status.textContent = 'Camera feed active';
+        });
+
+        video.addEventListener('error', (e) => {
+            console.error('Video error:', e);
+            status.textContent = 'Video feed error';
         });
     </script>
 </body>
