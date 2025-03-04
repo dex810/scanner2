@@ -75,9 +75,9 @@
             .then(function(cameras) {
                 console.log('Cameras found:', cameras);
                 if (cameras.length > 0) {
-                    // Use the rear camera by default
-                    const selectedCamera = cameras.find(camera => camera.name.includes('back')) || cameras[0];
-                    console.log('Starting camera:', selectedCamera.name);
+                    // Use the first camera by default
+                    const selectedCamera = cameras[0];
+                    console.log('Starting camera:', selectedCamera.id);
                     scanner.start(selectedCamera);
                     status.textContent = 'Scanning...';
                 } else {
