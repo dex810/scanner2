@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Code Scanner</title>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan-2.0.0.min.js"></script>
+</head>
+<body>
+    <video id="preview"></video>
+    <div id="status">Scanning...</div>
+
+    <script>
+        let scanner = new Instascan.Scanner({
+            video: document.getElementById('preview'),
+            mirror: false
+        });
+
+        scanner.addListener('scan', function(content) {
+            document.getElementById('status').textContent = `Scanned: ${content}`;
+            
+            // Send to Google Sheets
+            fetch('https://script.google.com/macros/s/AKfycbxDnM6CW6JoiT_m_EBaj4l3QOxJRjVVp-kfg13NnZwTvxH0w1buKB6EM5Ot4xl0k9Tk7A/exec', {
+                method: 'POST',
+                body: JSON.stringify({ qrContent: content }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+        });
+
+        Instascan.Camera.getCameras().then(function(cameras) {
+            if (cameras.length > 0) {
+                scanner.start(cameras[0]);
+            } else {
+                document.getElementById('status').textContent = 'No cameras found';
+            }
+        });
+    </script>
+</body>
+</html>
